@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/opsgenie/opsgenie-go-sdk-v2/client"
 	"github.com/opsgenie/opsgenie-go-sdk-v2/heartbeat"
 )
 
@@ -29,14 +30,23 @@ func main() {
 		return
 	}
 
-	for {
-		hbCli, err := heartbeat.NewClient(cfg.APIKey)
-		if err != nil {
-			fmt.Println("Error creating heartbeat client: ", err)
-			return
-		}
+	// Initialize the client
+	cli, err := client.NewClient(&client.Config{
+		ApiKey: cfg.APIKey,
+	})
+	if err != nil {
+		fmt.Println("Error creating client: ", err)
+		return
+	}
 
-		_, err = hbCli.Ping(cfg.HeartbeatName)
+	// Create a new heartbeat client
+	hbCli := cli.Heartbeat()
+
+	for {
+		// Generate a heartbeat
+		_, _, err := hbCli.Ping(heartbeat.PingRequest{
+			Name: cfg.HeartbeatName,
+		})
 		if err != nil {
 			fmt.Println("Error generating heartbeat: ", err)
 			return
