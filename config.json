@@ -1,4 +1,5 @@
 {
-	"apiKey": "your_opsgenie_api_key",
-	"heartbeatName": "your_heartbeat_name"
+	"apiKey": "YOUR_API_KEY",
+	"heartbeatName": "Heartbeat 1",
+	"description": "Sample heartbeat description"
 }

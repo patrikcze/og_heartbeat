@@ -3,56 +3,69 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"time"
+	"os"
 
-	"github.com/opsgenie/opsgenie-go-sdk-v2/client"
-	"github.com/opsgenie/opsgenie-go-sdk-v2/heartbeat"
+	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
+	hb "github.com/opsgenie/opsgenie-go-sdk/heartbeat"
 )
 
-type config struct {
+type Config struct {
 	APIKey        string `json:"apiKey"`
 	HeartbeatName string `json:"heartbeatName"`
+	Description   string `json:"description"`
 }
 
 func main() {
-	// Read the config file
-	configBytes, err := ioutil.ReadFile("config.json")
+	// Load config from JSON file
+	configFile, err := os.Open("config.json")
 	if err != nil {
-		fmt.Println("Error reading config file: ", err)
-		return
+		panic(err)
+	}
+	defer configFile.Close()
+
+	var cfg Config
+	jsonParser := json.NewDecoder(configFile)
+	if err = jsonParser.Decode(&cfg); err != nil {
+		panic(err)
 	}
 
-	var cfg config
-	err = json.Unmarshal(configBytes, &cfg)
-	if err != nil {
-		fmt.Println("Error parsing config file: ", err)
-		return
+	cli := new(ogcli.OpsGenieClient)
+	cli.SetAPIKey(cfg.APIKey)
+
+	hbCli, cliErr := cli.Heartbeat()
+	if cliErr != nil {
+		panic(cliErr)
 	}
 
-	// Initialize the client
-	cli, err := client.NewClient(&client.Config{
-		ApiKey: cfg.APIKey,
-	})
-	if err != nil {
-		fmt.Println("Error creating client: ", err)
-		return
+	// create the heartbeat
+	enabled := true
+	req := hb.AddHeartbeatRequest{
+		Name:         cfg.HeartbeatName,
+		IntervalUnit: "minutes",
+		Enabled:      &enabled,
+		Interval:     5,
+		Description:  cfg.Description,
+	}
+	response, hbErr := hbCli.Add(req)
+	if hbErr != nil {
+		panic(hbErr)
 	}
 
-	// Create a new heartbeat client
-	hbCli := cli.Heartbeat()
+	fmt.Printf("Name: %s\n", response.Name)
+	fmt.Printf("Status: %s\n", response.Status)
+	fmt.Printf("Code: %d\n", response.Code)
 
-	for {
-		// Generate a heartbeat
-		_, _, err := hbCli.Ping(heartbeat.PingRequest{
-			Name: cfg.HeartbeatName,
-		})
-		if err != nil {
-			fmt.Println("Error generating heartbeat: ", err)
-			return
-		}
+	// send heart beat request
+	pingRequest := hb.PingHeartbeatRequest{Name: response.Name}
+	pingResponse, sendErr := hbCli.Ping(pingRequest)
 
-		fmt.Println("Generated OpsGenie heartbeat.")
-		time.Sleep(5 * time.Minute)
+	if sendErr != nil {
+		panic(sendErr)
 	}
+
+	fmt.Println()
+	fmt.Printf("Heartbeat request sent\n")
+	fmt.Printf("----------------------\n")
+	fmt.Printf("RequestId: %s\n", pingResponse.RequestID)
+	fmt.Printf("Response Time: %f\n", pingResponse.ResponseTime)
 }
