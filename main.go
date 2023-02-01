@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	ogcli "github.com/opsgenie/opsgenie-go-sdk-v2/client"
-	hb "github.com/opsgenie/opsgenie-go-sdk-v2/heartbeat"
+	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
+	hb "github.com/opsgenie/opsgenie-go-sdk/heartbeat"
 )
 
 type Config struct {
